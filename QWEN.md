@@ -35,9 +35,17 @@
 - **Producto:** ANDALUS CREATIVE WORLD
 - **Identidad visual:** Verde de Andalucía (#006B3F, #073C27), blanco, dorado
 
-## Estado actual: PARTIAL
+## Estado actual: BLOCKED
 
-### ✅ IMPLEMENTADO (Código completo)
+**NO es PARTIAL. NO es VERIFIED. Es BLOCKED.**
+
+El código está escrito pero NO se ha verificado en runtime.
+
+### Limitación crítica del entorno:
+Este entorno solo proporciona herramientas de edición de archivos y compilación.
+**NO proporciona ejecución de comandos shell, acceso a bases de datos, ni capacidad de arrancar servicios.**
+
+### ✅ LO ÚNICO VERIFICADO
 
 **Frontend (React + TypeScript + Vite):**
 - ✅ 16 páginas funcionales
