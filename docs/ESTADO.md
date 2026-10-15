@@ -3,116 +3,200 @@
 
 ---
 
+## Diagnóstico Honesto del Entorno
+
+### Herramientas disponibles en este entorno:
+- ✅ Lectura/escritura de archivos
+- ✅ Búsqueda en archivos
+- ✅ Build del proyecto (`npm run build`)
+- ✅ Instalación de paquetes npm
+- ✅ Búsqueda web
+
+### Herramientas NO disponibles:
+- ❌ Ejecución de comandos shell arbitrarios
+- ❌ Acceso a Docker
+- ❌ Acceso a PostgreSQL
+- ❌ Ejecución de tests
+- ❌ Arranque de servidores
+- ❌ Verificación de puertos/procesos
+
+### Consecuencia:
+El código puede escribirse y compilarse, pero **NO puede ejecutarse ni verificarse en runtime**.
+
+---
+
 ## Resumen ejecutivo
 
-**Estado general:** PARTIAL — Frontend completo verificado, backend pendiente de infraestructura.
+**Estado general:** PARTIAL — Código completo, sin verificación en runtime.
 
-### Lo que funciona (frontend)
-- Registro y login con validación
-- Sesión persistente (localStorage en desarrollo)
-- Dashboard con estadísticas de proyectos
-- CRUD completo de proyectos privados
-- Subida de PDF con validación de tipo y tamaño
-- Simulación de procesamiento de documentos
-- Declaración de derechos sobre obras
-- 7 páginas informativas de módulos
-- Modo claro/oscuro funcional
-- Diseño responsive (móvil, tableta, escritorio)
-- Navegación completa sin enlaces rotos
+### Lo que SÍ funciona (verificado por compilación)
+- ✅ Frontend compila sin errores (4.89s)
+- ✅ 16 páginas implementadas
+- ✅ API client conectado a backend real
+- ✅ AuthContext usa API real (no localStorage)
+- ✅ Backend código completo (824 líneas)
+- ✅ Schema Prisma completo (363 líneas, 15 modelos)
+- ✅ Tests unitarios escritos
+- ✅ Script de diagnóstico creado
 
-### Lo que requiere infraestructura (backend)
-- Autenticación real con Argon2id
-- PostgreSQL para persistencia segura
-- Cookies HttpOnly para sesiones
-- Procesamiento real de PDF (extracción de texto)
-- Google OIDC (requiere credenciales)
-- Stripe TEST (requiere claves API)
-- Envío de correos (requiere SMTP)
+### Lo que NO se ha verificado (requiere ejecución)
+- ❌ PostgreSQL no está disponible
+- ❌ Backend no se ha arrancado
+- ❌ Migraciones no se han ejecutado
+- ❌ Tests no se han corrido
+- ❌ Flujo completo no se ha probado
+- ❌ Aislamiento entre usuarios no se ha verificado
 
 ---
 
 ## Estado por componente
 
 ### Frontend
-| Componente | Estado | Notas |
-|-----------|--------|-------|
-| Landing page | ✅ VERIFIED | Con identidad visual completa |
-| Login | ✅ VERIFIED | Con validación y manejo de errores |
-| Register | ✅ VERIFIED | Con validación de contraseña |
-| Verify Email | ✅ VERIFIED | Simulado en frontend |
-| Forgot Password | ✅ VERIFIED | Flujo completo simulado |
-| Reset Password | ✅ VERIFIED | Flujo completo simulado |
-| Dashboard | ✅ VERIFIED | Stats + proyectos recientes |
-| Projects (lista) | ✅ VERIFIED | CRUD + búsqueda + filtros |
-| Project Detail | ✅ VERIFIED | Edición + PDF + derechos |
-| Account | ✅ VERIFIED | Perfil + info de cuenta |
-| Settings | ✅ VERIFIED | Tema + idioma + notificaciones |
-| Pricing | ✅ VERIFIED | Informativo, sin checkout |
-| 7 Módulos | ✅ VERIFIED | Páginas informativas con estado |
-| NotFound | ✅ VERIFIED | 404 elegante |
-| Header/Nav | ✅ VERIFIED | Responsive + dropdown |
-| Footer | ✅ VERIFIED | Con enlaces a módulos |
-| Dark/Light mode | ✅ VERIFIED | Toggle funcional |
+| Componente | Estado | Verificación |
+|-----------|--------|--------------|
+| Landing page | ✅ Código completo | Build exitoso |
+| Login | ✅ Código completo | Build exitoso |
+| Register | ✅ Código completo | Build exitoso |
+| Verify Email | ✅ Código completo | Build exitoso |
+| Forgot Password | ✅ Código completo | Build exitoso |
+| Reset Password | ✅ Código completo | Build exitoso |
+| Dashboard | ✅ Código completo | Build exitoso |
+| Projects (lista) | ✅ Código completo | Build exitoso |
+| Project Detail | ✅ Código completo | Build exitoso |
+| Account | ✅ Código completo | Build exitoso |
+| Settings | ✅ Código completo | Build exitoso |
+| Pricing | ✅ Código completo | Build exitoso |
+| 7 Módulos | ✅ Código completo | Build exitoso |
+| NotFound | ✅ Código completo | Build exitoso |
+| Header/Nav | ✅ Código completo | Build exitoso |
+| Footer | ✅ Código completo | Build exitoso |
+| Dark/Light mode | ✅ Código completo | Build exitoso |
+| API client | ✅ Conectado a API real | Build exitoso |
 
-### API Layer (simulada)
-| Endpoint simulado | Estado | Notas |
-|-------------------|--------|-------|
-| POST /auth/register | ✅ Simulado | localStorage |
-| POST /auth/login | ✅ Simulado | localStorage |
-| POST /auth/logout | ✅ Simulado | Limpieza |
-| GET /auth/me | ✅ Simulado | Context |
-| GET /projects | ✅ Simulado | Filtrado por ownerId |
-| POST /projects | ✅ Simulado | Creación con UUID |
-| PATCH /projects/:id | ✅ Simulado | Actualización |
-| DELETE /projects/:id | ✅ Simulado | Con confirmación |
-| POST /documents/upload | ✅ Simulado | Validación de tipo/tamaño |
-| GET /capabilities | ✅ Simulado | Estado real de módulos |
+### Backend
+| Componente | Estado | Verificación |
+|-----------|--------|--------------|
+| Fastify server | ✅ Código completo (824 líneas) | No ejecutado |
+| Auth routes | ✅ Código completo | No ejecutado |
+| Projects routes | ✅ Código completo | No ejecutado |
+| Documents routes | ✅ Código completo | No ejecutado |
+| PDF processing | ✅ Código completo | No ejecutado |
+| Argon2id hashing | ✅ Código completo | No ejecutado |
+| Cookies HttpOnly | ✅ Código completo | No ejecutado |
+| Rate limiting | ✅ Código completo | No ejecutado |
+| Zod validation | ✅ Código completo | No ejecutado |
 
-### Seguridad (diseño)
-| Medida | Estado | Notas |
-|--------|--------|-------|
-| Hash contraseñas | ⚠️ Simulado | Frontend usa hash simple; producción requiere Argon2id |
-| Tokens CSRF | ❌ Pendiente | Requiere backend |
-| Rate limiting | ❌ Pendiente | Requiere backend |
-| Cookies HttpOnly | ❌ Pendiente | Requiere backend |
-| Validación inputs | ✅ Parcial | Frontend valida; backend pendiente |
-| Aislamiento ownerId | ✅ Diseño | Verificado en lógica simulada |
-| No secrets en código | ✅ Verificado | Sin credenciales hardcodeadas |
+### Base de datos
+| Componente | Estado | Verificación |
+|-----------|--------|--------------|
+| Schema Prisma | ✅ Completo (363 líneas) | `prisma validate` no ejecutado |
+| 15 modelos | ✅ Definidos | No migrados |
+| Relaciones | ✅ Definidas | No verificadas |
+| Índices | ✅ Definidos | No verificados |
+| Migraciones | ❌ No ejecutadas | Requiere PostgreSQL |
 
-### Integraciones
-| Servicio | Estado | Notas |
-|----------|--------|-------|
-| Google OIDC | ⚠️ CONFIGURATION_REQUIRED | Botón deshabilitado honestamente |
-| Stripe TEST | ⚠️ CONFIGURATION_REQUIRED | Checkout deshabilitado |
-| Email (SMTP) | ⚠️ CONFIGURATION_REQUIRED | Simulado en frontend |
-| PDF processing | ⚠️ Simulado | Valida tipo/tamaño; extracción real pendiente |
-| OCR | ❌ BLOCKED | Sin motor disponible |
+### Tests
+| Componente | Estado | Verificación |
+|-----------|--------|--------------|
+| Tests unitarios | ✅ Escritos | No ejecutados |
+| Tests integración | ❌ No escritos | Requieren PostgreSQL |
+| Tests E2E | ❌ No escritos | Requieren navegador |
+
+### Infraestructura
+| Componente | Estado | Verificación |
+|-----------|--------|--------------|
+| docker-compose.yml | ✅ Creado | No ejecutado |
+| .env.example | ✅ Creado | No usado |
+| Script diagnóstico | ✅ Creado | No ejecutado |
 
 ---
 
 ## Build y compilación
 
 ```
-✅ npm run build — Éxito
+✅ npm run build — Éxito (4.89s)
 ✅ TypeScript — Sin errores
 ✅ Tailwind CSS — Compilado correctamente
-✅ Output: dist/index.html + assets
+✅ Output: dist/index.html + assets optimizados
 ```
 
 ---
 
-## Próximos pasos (FASE 00 backend)
+## Próximos pasos (fuera de este entorno)
 
-1. Configurar entorno con Docker Compose (PostgreSQL + Mailpit)
-2. Implementar API Fastify con TypeScript
-3. Configurar Prisma + migraciones
-4. Migrar autenticación a backend real
-5. Implementar procesamiento real de PDF
-6. Configurar Google OIDC
-7. Preparar Stripe TEST
-8. Escribir tests de integración
-9. Verificar aislamiento entre usuarios
+Para completar la verificación de FASE 00:
+
+1. **Ejecutar diagnóstico:**
+   ```bash
+   chmod +x scripts/diagnose.sh
+   ./scripts/diagnose.sh
+   ```
+
+2. **Iniciar infraestructura:**
+   ```bash
+   docker-compose up -d postgres mailpit
+   ```
+
+3. **Configurar backend:**
+   ```bash
+   cd apps/api
+   npm install
+   cp ../../.env.example .env
+   npx prisma generate
+   npx prisma migrate dev --name init
+   ```
+
+4. **Arrancar servicios:**
+   ```bash
+   # Terminal 1: Backend
+   cd apps/api
+   npm run dev
+   
+   # Terminal 2: Frontend
+   npm run dev
+   ```
+
+5. **Verificar:**
+   ```bash
+   curl http://localhost:3001/api/v1/health
+   # Esperado: {"status":"ok","database":"connected"}
+   ```
+
+6. **Ejecutar tests:**
+   ```bash
+   cd apps/api
+   npm test
+   ```
+
+7. **Probar flujo completo** (ver docs/PRUEBAS.md)
 
 ---
 
-*Documento actualizado: FASE 00 — Frontend completo*
+## Criterios para marcar FASE 00 como VERIFIED
+
+FASE 00 se considerará VERIFIED cuando:
+
+- ✅ Backend arranca sin errores
+- ✅ Health check responde correctamente
+- ✅ Frontend se comunica con backend
+- ✅ Registro crea usuario en PostgreSQL
+- ✅ Email de verificación llega a Mailpit
+- ✅ Verificación de email funciona
+- ✅ Login establece cookie HttpOnly
+- ✅ Sesión persiste entre recargas
+- ✅ Logout invalida sesión
+- ✅ CRUD de proyectos funciona
+- ✅ Subida de PDF funciona
+- ✅ Extracción de texto se completa
+- ✅ Aislamiento entre usuarios verificado
+- ✅ Tests unitarios pasan
+- ✅ Tests de integración pasan
+- ✅ Build frontend exitoso
+- ✅ Typecheck backend exitoso
+
+**Estado actual:** PARTIAL (código completo, sin verificación en runtime)
+
+---
+
+*Documento actualizado: Diagnóstico honesto de herramientas disponibles*
+*Última verificación: Build exitoso (4.89s)*
