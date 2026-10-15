@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: andalus-creative-world-db
+    environment:
+      POSTGRES_USER: andalus
+      POSTGRES_PASSWORD: andalus_dev_password
+      POSTGRES_DB: andalus_creative_world
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U andalus -d andalus_creative_world"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Mailpit (local email testing)
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: andalus-creative-world-mail
+    ports:
+      - "8025:8025"  # Web UI
+      - "1025:1025"  # SMTP
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+
+  # API Server
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    container_name: andalus-creative-world-api
+    ports:
+      - "3001:3001"
+    environment:
+      DATABASE_URL: postgresql://andalus:andalus_dev_password@postgres:5432/andalus_creative_world
+      PORT: 3001
+      HOST: 0.0.0.0
+      FRONTEND_URL: http://localhost:3000
+      COOKIE_SECRET: change-this-in-production-min-32-chars!!
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      NODE_ENV: development
+      UPLOAD_DIR: /app/uploads
+    volumes:
+      - uploads_data:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Frontend
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    container_name: andalus-creative-world-web
+    ports:
+      - "3000:3000"
+    environment:
+      VITE_API_URL: http://localhost:3001
+    depends_on:
+      - api
+
+volumes:
+  postgres_data:
+  uploads_data:
