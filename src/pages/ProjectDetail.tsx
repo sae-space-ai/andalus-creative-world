@@ -36,20 +36,21 @@ export default function ProjectDetail() {
   const [notFound, setNotFound] = useState(false);
 
   const loadProject = async () => {
-    if (!user || !id) return;
+    if (!id) return;
     setLoading(true);
     try {
-      const data = await projectsApi.get(id, user.id);
-      if (!data) {
-        setNotFound(true);
-        return;
-      }
-      setProject(data);
-      setEditTitle(data.title);
-      setEditDescription(data.description);
+      const data = await projectsApi.get(id);
+      const proj = data.project;
+      setProject(proj);
+      setEditTitle(proj.title);
+      setEditDescription(proj.description);
       
-      const docs = await documentsApi.list(id, user.id);
-      setDocuments(docs);
+      const docs = await documentsApi.list(id);
+      setDocuments(docs.documents || []);
+    } catch (err: any) {
+      if (err.message?.includes('404') || err.message?.includes('no encontrado')) {
+        setNotFound(true);
+      }
     } finally {
       setLoading(false);
     }
@@ -60,52 +61,60 @@ export default function ProjectDetail() {
   // Refresh documents periodically to show processing status
   useEffect(() => {
     const interval = setInterval(async () => {
-      if (!user || !id) return;
-      const docs = await documentsApi.list(id, user.id);
-      setDocuments(docs);
+      if (!id) return;
+      try {
+        const docs = await documentsApi.list(id);
+        setDocuments(docs.documents || []);
+      } catch {}
     }, 3000);
     return () => clearInterval(interval);
   }, [user, id]);
 
   const handleSave = async () => {
-    if (!user || !id || !editTitle.trim()) return;
+    if (!id || !editTitle.trim()) return;
     setSaving(true);
     try {
-      const updated = await projectsApi.update(id, {
+      const result = await projectsApi.update(id, {
         title: editTitle.trim(),
         description: editDescription.trim(),
-      }, user.id);
-      if (updated) {
-        setProject(updated);
-        setEditing(false);
-      }
+      });
+      setProject(result.project);
+      setEditing(false);
+    } catch (err: any) {
+      alert(err.message || 'Error al guardar');
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async () => {
-    if (!user || !id) return;
+    if (!id) return;
     if (!confirm('¿Eliminar este proyecto y todos sus documentos? Esta acción no se puede deshacer.')) return;
-    await projectsApi.delete(id, user.id);
-    navigate('/projects');
+    try {
+      await projectsApi.delete(id);
+      navigate('/projects');
+    } catch (err: any) {
+      alert(err.message || 'Error al eliminar');
+    }
   };
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !user || !id) return;
+    if (!file || !id) return;
     
     setUploadError('');
     setUploading(true);
     
     try {
-      const doc = await documentsApi.upload(id, file, user.id);
-      setDocuments(prev => [...prev, doc]);
+      const result = await documentsApi.upload(id, file);
+      setDocuments(prev => [...prev, result.document]);
       
       // Refresh to get updated status
       setTimeout(async () => {
-        const docs = await documentsApi.list(id, user.id);
-        setDocuments(docs);
+        try {
+          const docs = await documentsApi.list(id);
+          setDocuments(docs.documents || []);
+        } catch {}
       }, 3500);
     } catch (err: any) {
       setUploadError(err.message || 'Error al subir el archivo.');
@@ -116,22 +125,17 @@ export default function ProjectDetail() {
   };
 
   const handleRightsDeclaration = async () => {
-    if (!user || !id || !project) return;
-    // In production this would be a real API call
-    const updated = await projectsApi.update(id, {
-      // @ts-ignore - rightsDeclaration not in update type but handled
-    } as any, user.id);
-    
-    // Simulate rights declaration
-    setProject({
-      ...project,
-      rightsDeclaration: {
-        type: selectedRights,
-        declaredAt: new Date().toISOString(),
-        notes: rightsNotes,
-      },
-    });
-    setShowRightsForm(false);
+    if (!id || !project) return;
+    try {
+      const result = await projectsApi.update(id, {
+        rightsType: selectedRights,
+        rightsNotes: rightsNotes,
+      });
+      setProject(result.project);
+      setShowRightsForm(false);
+    } catch (err: any) {
+      alert(err.message || 'Error al guardar declaración');
+    }
   };
 
   if (loading) {
@@ -241,14 +245,16 @@ export default function ProjectDetail() {
           <h3 className="text-sm font-semibold text-andalus-500 dark:text-andalus-400 mb-2">
             <Shield size={14} className="inline mr-1" /> Derechos sobre la obra
           </h3>
-          {project.rightsDeclaration ? (
+          {project.rightsType ? (
             <div>
               <p className="text-sm text-andalus-700 dark:text-andalus-200 font-medium">
-                {RIGHTS_OPTIONS.find(r => r.value === project.rightsDeclaration?.type)?.label}
+                {RIGHTS_OPTIONS.find(r => r.value === project.rightsType)?.label}
               </p>
-              <p className="text-xs text-andalus-400 mt-1">
-                Declarado: {new Date(project.rightsDeclaration.declaredAt).toLocaleDateString('es')}
-              </p>
+              {project.rightsDeclaredAt && (
+                <p className="text-xs text-andalus-400 mt-1">
+                  Declarado: {new Date(project.rightsDeclaredAt).toLocaleDateString('es')}
+                </p>
+              )}
             </div>
           ) : (
             <button onClick={() => setShowRightsForm(true)} className="text-sm text-andalus-600 dark:text-andalus-400 font-medium hover:text-andalus-800">
@@ -316,7 +322,7 @@ export default function ProjectDetail() {
           <div className="flex items-center gap-4">
             <div className="flex-1">
               <p className="text-sm font-medium text-andalus-700 dark:text-andalus-200 mb-1">Subir PDF</p>
-              <p className="text-xs text-andalus-500">Máximo 50 MB. Solo archivos PDF.</p>
+              <p className="text-xs text-andalus-500">Máximo 50 MB. Solo archivos PDF. Requiere declaración de derechos.</p>
             </div>
             <input
               ref={fileInputRef}
@@ -325,15 +331,23 @@ export default function ProjectDetail() {
               onChange={handleUpload}
               className="hidden"
               id="pdf-upload"
+              disabled={!project.rightsType}
             />
             <label
               htmlFor="pdf-upload"
-              className={`btn-outline text-sm inline-flex items-center gap-2 cursor-pointer ${uploading ? 'opacity-50 pointer-events-none' : ''}`}
+              className={`btn-outline text-sm inline-flex items-center gap-2 ${
+                !project.rightsType ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+              } ${uploading ? 'opacity-50 pointer-events-none' : ''}`}
             >
               <Upload size={16} />
               {uploading ? 'Subiendo...' : 'Seleccionar PDF'}
             </label>
           </div>
+          {!project.rightsType && (
+            <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-2">
+              ⚠️ Debes declarar los derechos sobre la obra antes de subir documentos.
+            </p>
+          )}
           {uploadError && (
             <div className="mt-3 p-2 rounded bg-red-50 dark:bg-red-900/20 text-sm text-red-600 dark:text-red-400 flex items-center gap-2">
               <AlertTriangle size={14} /> {uploadError}

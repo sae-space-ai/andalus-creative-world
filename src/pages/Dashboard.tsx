@@ -12,13 +12,15 @@ export default function Dashboard() {
   const { user } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+  const [apiError, setApiError] = useState('');
 
   useEffect(() => {
     async function load() {
-      if (!user) return;
       try {
-        const data = await projectsApi.list(user.id);
-        setProjects(data);
+        const data = await projectsApi.list();
+        setProjects(data.projects || []);
+      } catch (err: any) {
+        setApiError(err.message || 'Error al cargar proyectos');
       } finally {
         setLoading(false);
       }
@@ -45,6 +47,14 @@ export default function Dashboard() {
           Bienvenido a tu espacio creativo en Andalus Creative World.
         </p>
       </div>
+
+      {apiError && (
+        <div className="mb-6 p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+          <p className="text-sm text-red-700 dark:text-red-300">
+            ⚠️ {apiError}. Asegúrate de que el servidor API está ejecutándose en http://localhost:3001
+          </p>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
@@ -158,7 +168,7 @@ export default function Dashboard() {
             <p className="text-sm text-andalus-600 dark:text-andalus-300">
               Los módulos Cinema, Community, Festivals, Rights, Trace y Wallet están en fase de diseño (DESIGNED). 
               Google OIDC y Stripe TEST requieren configuración de credenciales (CONFIGURATION_REQUIRED). 
-              La autenticación por email, proyectos y procesamiento de PDF están implementados.
+              La autenticación por email, proyectos y procesamiento de PDF están implementados con backend real.
             </p>
           </div>
         </div>

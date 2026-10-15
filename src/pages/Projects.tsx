@@ -30,11 +30,12 @@ export default function Projects() {
   const [creating, setCreating] = useState(false);
 
   const loadProjects = async () => {
-    if (!user) return;
     setLoading(true);
     try {
-      const data = await projectsApi.list(user.id);
-      setProjects(data);
+      const data = await projectsApi.list();
+      setProjects(data.projects || []);
+    } catch (err) {
+      console.error('Error loading projects:', err);
     } finally {
       setLoading(false);
     }
@@ -44,25 +45,30 @@ export default function Projects() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !newTitle.trim()) return;
+    if (!newTitle.trim()) return;
     setCreating(true);
     try {
-      const project = await projectsApi.create({
+      const result = await projectsApi.create({
         type: newType,
         title: newTitle.trim(),
         description: newDescription.trim(),
-      }, user.id);
-      navigate(`/projects/${project.id}`);
+      });
+      navigate(`/projects/${result.project.id}`);
+    } catch (err: any) {
+      alert(err.message || 'Error al crear proyecto');
     } finally {
       setCreating(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!user) return;
     if (!confirm('¿Eliminar este proyecto? Esta acción no se puede deshacer.')) return;
-    await projectsApi.delete(id, user.id);
-    setProjects(prev => prev.filter(p => p.id !== id));
+    try {
+      await projectsApi.delete(id);
+      setProjects(prev => prev.filter(p => p.id !== id));
+    } catch (err: any) {
+      alert(err.message || 'Error al eliminar proyecto');
+    }
   };
 
   const filtered = projects.filter(p => {

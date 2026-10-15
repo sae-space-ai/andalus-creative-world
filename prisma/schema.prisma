@@ -1,0 +1,362 @@
+// ANDALUS CREATIVE WORLD — Prisma Schema
+// FASE 00 — PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// USERS & AUTH
+// ============================================================
+
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  emailNormalized String    @unique
+  passwordHash    String?   // null for OIDC-only users
+  displayName     String
+  role            UserRole  @default(USER)
+  status          UserStatus @default(PENDING_VERIFICATION)
+  emailVerifiedAt DateTime?
+  locale          String    @default("es")
+  theme           String    @default("system")
+  notifications   Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  externalIdentities  ExternalIdentity[]
+  sessions            Session[]
+  projects            Project[]
+  documents           SourceDocument[]
+  securityEvents      SecurityEvent[]
+  creditWallet        CreditWallet?
+  emailTokens         EmailVerificationToken[]
+  passwordTokens      PasswordResetToken[]
+  promotionRedemptions PromotionRedemption[]
+  paymentRecords      PaymentRecord[]
+
+  @@index([emailNormalized])
+}
+
+enum UserRole {
+  USER
+  ADMIN
+  MODERATOR
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  PENDING_VERIFICATION
+  DEACTIVATED
+}
+
+model ExternalIdentity {
+  id              String   @id @default(cuid())
+  userId          String
+  provider        String   // "google", "apple", "microsoft"
+  providerSubject String   // external user ID
+  email           String?
+  displayName     String?
+  metadata        Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerSubject])
+  @@index([userId])
+}
+
+model Session {
+  id            String   @id @default(cuid())
+  userId        String
+  tokenHash     String   @unique // SHA-256 of the session token
+  expiresAt     DateTime
+  revokedAt     DateTime?
+  createdAt     DateTime @default(now())
+  lastActivity  DateTime @default(now())
+  userAgent     String?
+  ipAddress     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenHash])
+  @@index([expiresAt])
+}
+
+model EmailVerificationToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique // SHA-256 of the token
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenHash])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenHash])
+}
+
+model SecurityEvent {
+  id        String   @id @default(cuid())
+  userId    String?
+  type      String   // LOGIN, LOGOUT, FAILED_LOGIN, PASSWORD_RESET, etc.
+  ipAddress String?
+  userAgent String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+// ============================================================
+// PROJECTS & DOCUMENTS
+// ============================================================
+
+model Project {
+  id                String          @id @default(cuid())
+  ownerId           String
+  type              ProjectType
+  title             String
+  description       String          @default("")
+  status            ProjectStatus   @default(DRAFT)
+  visibility        ProjectVisibility @default(PRIVATE)
+  
+  // Rights declaration
+  rightsType        RightsType?
+  rightsDeclaredAt  DateTime?
+  rightsNotes       String?
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  owner     User              @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  documents SourceDocument[]
+
+  @@index([ownerId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+enum ProjectType {
+  FILM
+  SHORT_FILM
+  MUSIC_VIDEO
+  MUSIC_PROJECT
+  OTHER
+}
+
+enum ProjectStatus {
+  DRAFT
+  ACTIVE
+  PROCESSING
+  COMPLETED
+  ARCHIVED
+}
+
+enum ProjectVisibility {
+  PRIVATE
+  UNLISTED
+  PUBLIC
+}
+
+enum RightsType {
+  OWN_WORK
+  PUBLIC_DOMAIN
+  LICENSED
+  AUTHORIZED
+}
+
+model SourceDocument {
+  id            String           @id @default(cuid())
+  projectId     String
+  ownerId       String
+  originalName  String
+  mimeType      String
+  sizeBytes     Int
+  checksum      String           // SHA-256
+  storagePath   String           // private file path
+  status        DocumentStatus   @default(PENDING)
+  pageCount     Int              @default(0)
+  errorMessage  String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  project  Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  owner    User              @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  pages    DocumentPage[]
+  jobs     DocumentProcessingJob[]
+
+  @@index([projectId])
+  @@index([ownerId])
+  @@index([status])
+}
+
+enum DocumentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  NEEDS_OCR
+}
+
+model DocumentPage {
+  id          String @id @default(cuid())
+  documentId  String
+  pageNumber  Int
+  text        String @default("")
+  metadata    Json?
+
+  document SourceDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, pageNumber])
+  @@index([documentId])
+}
+
+model DocumentProcessingJob {
+  id          String   @id @default(cuid())
+  documentId  String
+  status      String   @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED
+  progress    Int      @default(0)
+  attempts    Int      @default(0)
+  maxAttempts Int      @default(3)
+  error       String?
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  document SourceDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId])
+  @@index([status])
+}
+
+// ============================================================
+// CREDITS & LEDGER
+// ============================================================
+
+model CreditWallet {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  balance            Int      @default(0)   // purchased credits (integer units)
+  promotionalBalance Int      @default(0)   // promotional credits (not withdrawable)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user    User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entries CreditLedgerEntry[]
+
+  @@index([userId])
+}
+
+model CreditLedgerEntry {
+  id              String              @id @default(cuid())
+  walletId        String
+  type            CreditTransactionType
+  amount          Int                 // positive = credit, negative = debit
+  balanceAfter    Int
+  reference       String?             // operation reference
+  idempotencyKey  String              @unique
+  description     String?
+  createdAt       DateTime            @default(now())
+
+  wallet CreditWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@index([walletId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+enum CreditTransactionType {
+  PURCHASE
+  PROMOTIONAL_GRANT
+  RESERVE
+  CAPTURE
+  RELEASE
+  REFUND
+  EXPIRE
+  ADJUSTMENT
+}
+
+// ============================================================
+// PROMOTIONS & PAYMENTS
+// ============================================================
+
+model PromotionCampaign {
+  id              String   @id @default(cuid())
+  name            String
+  code            String   @unique
+  description     String?
+  purchaseAmount  Int      // minimum purchase in cents
+  bonusAmount     Int      // bonus credits
+  active          Boolean  @default(false)
+  maxRedemptions  Int?
+  redemptionCount Int      @default(0)
+  startsAt        DateTime?
+  endsAt          DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  redemptions PromotionRedemption[]
+}
+
+model PromotionRedemption {
+  id          String   @id @default(cuid())
+  campaignId  String
+  userId      String
+  paymentId   String?
+  creditsGranted Int
+  createdAt   DateTime @default(now())
+
+  campaign PromotionCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, userId]) // one redemption per user per campaign
+  @@index([userId])
+}
+
+model PaymentRecord {
+  id                String   @id @default(cuid())
+  userId            String
+  provider          String   @default("stripe")
+  providerPaymentId String   @unique
+  amount            Int      // in cents
+  currency          String   @default("EUR")
+  status            String   @default("pending") // pending, completed, failed, refunded
+  metadata          Json?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+}

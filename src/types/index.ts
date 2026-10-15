@@ -42,7 +42,9 @@ export interface Project {
   description: string;
   status: ProjectStatus;
   visibility: ProjectVisibility;
-  rightsDeclaration: RightsDeclaration | null;
+  rightsType: RightsType | null;
+  rightsDeclaredAt: string | null;
+  rightsNotes: string | null;
   createdAt: string;
   updatedAt: string;
   documents: SourceDocument[];

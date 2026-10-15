@@ -11,17 +11,41 @@ Andalus Creative World es una plataforma integral de creación audiovisual que p
 
 ## Estado actual — FASE 00
 
-Esta versión implementa el **frontend completo** de la Fase 00 (Fundación Integral del Producto):
+**Estado: PARTIAL — Código completo, pendiente de verificación en runtime**
 
-- ✅ Autenticación (registro, login, recuperación)
-- ✅ Dashboard personal
-- ✅ Gestión de proyectos privados
-- ✅ Subida y procesamiento de PDF
-- ✅ Declaración de derechos sobre obras
-- ✅ 7 módulos del ecosistema (diseñados)
-- ✅ Modo claro/oscuro
-- ✅ Diseño responsive y accesible
-- ✅ Sistema de créditos (diseñado)
+### ✅ Implementado (código completo)
+- Frontend React con 16 páginas
+- Backend Fastify con autenticación real
+- Schema Prisma con 15 modelos PostgreSQL
+- Procesamiento real de PDF con extracción de texto
+- Sistema de créditos y ledger
+- 7 módulos del ecosistema (diseñados)
+
+### ⚠️ Pendiente de verificación
+- Ejecución con PostgreSQL real
+- Tests de integración
+- Flujo completo E2E
+- Google OIDC (requiere credenciales)
+- Stripe TEST (requiere claves)
+
+## Arquitectura
+
+```
+/workspace
+├── apps/api/              # Backend Fastify + TypeScript
+│   ├── src/index.ts       # Servidor completo
+│   └── package.json
+├── prisma/
+│   └── schema.prisma      # 15 modelos PostgreSQL
+├── src/                   # Frontend React
+│   ├── App.tsx
+│   ├── api/               # API client (fetch real)
+│   ├── context/           # Auth + Theme
+│   ├── components/        # Layout + ProtectedRoute
+│   └── pages/             # 16 páginas
+├── docker-compose.yml     # PostgreSQL + Mailpit + API
+└── .env.example
+```
 
 ## Módulos
 
@@ -35,29 +59,48 @@ Esta versión implementa el **frontend completo** de la Fase 00 (Fundación Inte
 | 🔍 Trace 360° | Diseñado | Seguimiento y rendimiento |
 | 💰 Wallet | Diseñado | Ganancias de creadores |
 
+## Inicio rápido
+
+### 1. Iniciar infraestructura
+```bash
+docker-compose up -d postgres mailpit
+```
+
+### 2. Configurar backend
+```bash
+cd apps/api
+npm install
+cp ../../.env.example .env
+npx prisma generate
+npx prisma migrate dev --name init
+npm run dev
+```
+
+### 3. Iniciar frontend
+```bash
+cd ../..
+npm install
+npm run dev
+```
+
+### 4. Abrir navegador
+- Frontend: http://localhost:3000
+- API: http://localhost:3001
+- Mailpit: http://localhost:8025
+
 ## Tecnologías
 
-- **Frontend:** React 18 + TypeScript + Vite
-- **Estilos:** Tailwind CSS 4
-- **Routing:** React Router 6
-- **Iconos:** Lucide React
-- **Animaciones:** Framer Motion
+### Frontend
+- React 18 + TypeScript + Vite
+- Tailwind CSS 4
+- React Router 6
 
-## Desarrollo
-
-```bash
-# Instalar dependencias
-npm install
-
-# Desarrollo
-npm run dev
-
-# Build producción
-npm run build
-
-# Verificación de tipos
-npm run typecheck
-```
+### Backend
+- Fastify 4 + TypeScript
+- Prisma 5 + PostgreSQL 16
+- Argon2id (contraseñas)
+- Zod (validación)
+- pdf-parse (extracción PDF)
 
 ## Identidad visual
 
@@ -66,27 +109,25 @@ npm run typecheck
 - **Blanco:** #FFFFFF
 - **Dorado:** #C9A84C
 
-## Arquitectura futura (monorepo)
-
-```
-apps/
-  web/        # Frontend React (este proyecto)
-  api/        # Backend Fastify
-packages/
-  contracts/  # Tipos compartidos
-  shared/     # Utilidades
-  ui/         # Componentes compartidos
-prisma/       # Schema y migraciones
-```
-
 ## Seguridad
 
-- Autenticación con Argon2id (backend)
-- Cookies HttpOnly + Secure
+- Autenticación con Argon2id
+- Cookies HttpOnly + Secure + SameSite
 - CSRF protection
 - Rate limiting
 - Validación Zod en todos los inputs
 - Aislamiento de datos por propietario
+- Tokens de un solo uso con caducidad
+
+## Documentación
+
+- [QWEN.md](QWEN.md) — Memoria técnica
+- [docs/ESTADO.md](docs/ESTADO.md) — Estado detallado
+- [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md) — Arquitectura
+- [docs/SEGURIDAD.md](docs/SEGURIDAD.md) — Seguridad
+- [docs/MODULOS.md](docs/MODULOS.md) — Módulos del ecosistema
+- [docs/AUTENTICACION.md](docs/AUTENTICACION.md) — Autenticación
+- [docs/FASE00_INFORME_FINAL.md](docs/FASE00_INFORME_FINAL.md) — Informe final
 
 ## Licencia
 
