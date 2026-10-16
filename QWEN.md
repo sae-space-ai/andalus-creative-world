@@ -1,12 +1,27 @@
 # QWEN.md — Memoria Técnica
 ## ANDALUS CREATIVE WORLD
-### AL-ANDALUS AI — FASE 00
+### AL-ANDALUS AI — FASE 00-TD
+
+---
+
+## MÉTODO TOP-DOWN
+
+**Definir primero la experiencia final del usuario;**
+**después pantallas, acciones, contratos,**
+**tecnología y pruebas.**
+
+No desarrollar infraestructura aislada
+sin necesidad funcional definida.
+
+No presentar simulaciones como funciones operativas.
+
+No reconstruir código existente válido.
 
 ---
 
 ## Diagnóstico de Herramientas Disponibles
 
-**IMPORTANTE:** Este entorno de desarrollo solo proporciona las siguientes herramientas:
+**IMPORTANTE:** Este entorno de desarrollo solo proporciona:
 - `build_project` (ejecuta `npm run build`)
 - `create_file`, `edit_file`, `delete_file`
 - `glob_files`, `grep_files`, `list_files`, `read_file`
@@ -19,10 +34,11 @@
 - ❌ Ejecución de comandos shell arbitrarios
 - ❌ Acceso a Docker
 - ❌ Acceso a PostgreSQL
-- ❌ Ejecución de tests (vitest, jest)
+- ❌ Ejecución de tests (vitest, jest, playwright)
 - ❌ Arranque de servidores (Fastify, Vite)
 - ❌ Verificación de puertos
 - ❌ Inspección de procesos
+- ❌ Acceso a Vercel
 
 **Consecuencia:** El código puede escribirse y compilarse, pero NO puede ejecutarse ni verificarse en runtime dentro de este entorno.
 
@@ -35,17 +51,23 @@
 - **Producto:** ANDALUS CREATIVE WORLD
 - **Identidad visual:** Verde de Andalucía (#006B3F, #073C27), blanco, dorado
 
+---
+
 ## Estado actual: BLOCKED
 
 **NO es PARTIAL. NO es VERIFIED. Es BLOCKED.**
 
-El código está escrito pero NO se ha verificado en runtime.
-
-### Limitación crítica del entorno:
-Este entorno solo proporciona herramientas de edición de archivos y compilación.
-**NO proporciona ejecución de comandos shell, acceso a bases de datos, ni capacidad de arrancar servicios.**
+El código está completo y compilado, pero NO se ha verificado en runtime.
 
 ### ✅ LO ÚNICO VERIFICADO
+
+**Frontend Build:**
+```bash
+Comando: npm run build
+Resultado: ✅ ÉXITO (4.93s)
+```
+
+### ✅ IMPLEMENTADO (Código completo)
 
 **Frontend (React + TypeScript + Vite):**
 - ✅ 16 páginas funcionales
@@ -53,7 +75,7 @@ Este entorno solo proporciona herramientas de edición de archivos y compilació
 - ✅ AuthContext usa API real (no localStorage)
 - ✅ Modo claro/oscuro
 - ✅ Diseño responsive
-- ✅ Build exitoso (4.89s, sin errores)
+- ✅ **Sin simulaciones** (3 corregidas en esta ejecución)
 
 **Backend (Fastify + TypeScript):**
 - ✅ Servidor completo (824 líneas)
@@ -71,21 +93,17 @@ Este entorno solo proporciona herramientas de edición de archivos y compilació
 - ✅ Tipos enum
 - ✅ Constraints de unicidad
 
-**Infraestructura:**
-- ✅ docker-compose.yml (PostgreSQL + Mailpit + API + Web)
-- ✅ .env.example documentado
-- ✅ Script de diagnóstico (scripts/diagnose.sh)
-
 **Tests:**
-- ✅ Tests unitarios creados (apps/api/tests/unit.test.ts)
-- ✅ Configuración Vitest (apps/api/vitest.config.ts)
-- ✅ Procedimiento de pruebas documentado (docs/PRUEBAS.md)
+- ✅ Tests unitarios (apps/api/tests/unit.test.ts)
+- ✅ Tests de integración (apps/api/tests/integration.test.ts)
+- ✅ CI configurado (.github/workflows/verify-fase00.yml)
 
-### ⚠️ CONFIGURATION_REQUIRED
-
-- Google OIDC (sin credenciales)
-- Stripe TEST (sin claves API)
-- SMTP (sin configuración)
+**Documentación TOP-DOWN:**
+- ✅ docs/EXPERIENCIA_USUARIO.md
+- ✅ docs/RECORRIDOS_TOP_DOWN.md
+- ✅ docs/MODULOS.md
+- ✅ docs/PRUEBAS.md
+- ✅ docs/INFORME_FINAL_FASE00_TD.md
 
 ### ❌ NO VERIFICADO (Requiere ejecución)
 
@@ -94,39 +112,56 @@ Este entorno solo proporciona herramientas de edición de archivos y compilació
 - ❌ Backend arrancado
 - ❌ Tests ejecutados
 - ❌ Flujo completo E2E
+- ❌ Despliegue en Vercel verificado
+
+---
+
+## Simulaciones corregidas en esta ejecución
+
+### 1. VerifyEmail (src/pages/AuthPages.tsx)
+**ANTES:** `await new Promise(r => setTimeout(r, 1500));`
+**AHORA:** `await authApi.verifyEmail(token);`
+
+### 2. ForgotPassword (src/pages/AuthPages.tsx)
+**ANTES:** `await new Promise(r => setTimeout(r, 1000));`
+**AHORA:** `await authApi.forgotPassword(email);`
+
+### 3. ResetPassword (src/pages/AuthPages.tsx)
+**ANTES:** `await new Promise(r => setTimeout(r, 1000));`
+**AHORA:** `await authApi.resetPassword(token, password);`
 
 ---
 
 ## Comandos para ejecutar fuera de este entorno
 
 ```bash
-# 1. Diagnóstico
-chmod +x scripts/diagnose.sh
-./scripts/diagnose.sh
-
-# 2. Iniciar infraestructura
+# 1. Iniciar infraestructura
 docker-compose up -d postgres mailpit
 
-# 3. Configurar backend
+# 2. Configurar backend
 cd apps/api
 npm install
 cp ../../.env.example .env
 npx prisma generate
 npx prisma migrate dev --name init
 
-# 4. Arrancar backend
+# 3. Arrancar servicios
+# Terminal 1: Backend
+cd apps/api
 npm run dev
 
-# 5. Arrancar frontend (otra terminal)
-cd ../..
+# Terminal 2: Frontend
 npm run dev
 
-# 6. Verificar
+# 4. Verificar
 curl http://localhost:3001/api/v1/health
 
-# 7. Ejecutar tests
+# 5. Ejecutar tests
 cd apps/api
 npm test
+
+# 6. Probar flujo completo
+# Abrir http://localhost:3000
 ```
 
 ---
@@ -135,16 +170,18 @@ npm test
 
 ```
 /workspace
-├── apps/api/                    # Backend Fastify
-│   ├── src/index.ts            # Servidor (824 líneas)
-│   ├── tests/unit.test.ts      # Tests unitarios
-│   ├── vitest.config.ts        # Config Vitest
+├── .github/workflows/
+│   └── verify-fase00.yml       # CI con PostgreSQL real
+├── apps/api/
+│   ├── src/index.ts            # Backend Fastify (824 líneas)
+│   ├── tests/
+│   │   ├── unit.test.ts        # Tests unitarios
+│   │   └── integration.test.ts # Prueba Nº 001
+│   ├── vitest.config.ts
 │   ├── package.json
 │   └── tsconfig.json
 ├── prisma/
 │   └── schema.prisma           # 15 modelos (363 líneas)
-├── scripts/
-│   └── diagnose.sh             # Script de diagnóstico
 ├── src/                         # Frontend React
 │   ├── App.tsx
 │   ├── api/index.ts            # API client (fetch real)
@@ -154,15 +191,14 @@ npm test
 │   ├── components/
 │   │   ├── Layout.tsx
 │   │   └── ProtectedRoute.tsx
-│   └── pages/                  # 16 páginas
+│   └── pages/                  # 16 páginas (sin simulaciones)
 ├── docs/
+│   ├── EXPERIENCIA_USUARIO.md  # Recorridos TOP-DOWN
+│   ├── RECORRIDOS_TOP_DOWN.md  # Flujos detallados
+│   ├── MODULOS.md              # 7 módulos
 │   ├── PRUEBAS.md              # Procedimiento completo
-│   ├── ESTADO.md
-│   ├── ARQUITECTURA.md
-│   ├── SEGURIDAD.md
-│   ├── MODULOS.md
-│   ├── AUTENTICACION.md
-│   └── FASE00_INFORME_FINAL.md
+│   ├── INFORME_FINAL_FASE00_TD.md
+│   └── ...
 ├── docker-compose.yml
 ├── .env.example
 ├── QWEN.md
@@ -204,18 +240,20 @@ npm test
 
 Para completar la verificación de FASE 00:
 
-1. Ejecutar `./scripts/diagnose.sh` en un entorno con Docker/PostgreSQL
-2. Levantar infraestructura con `docker-compose up -d`
-3. Instalar dependencias del backend: `cd apps/api && npm install`
-4. Generar cliente Prisma: `npx prisma generate`
-5. Ejecutar migraciones: `npx prisma migrate dev --name init`
-6. Arrancar backend: `npm run dev`
-7. Verificar health check: `curl http://localhost:3001/api/v1/health`
-8. Ejecutar tests: `npm test`
-9. Probar flujo completo (ver docs/PRUEBAS.md)
-10. **No marcar FASE 00 como VERIFIED hasta completar todos los pasos**
+1. Ejecutar `docker-compose up -d postgres mailpit`
+2. Instalar dependencias del backend: `cd apps/api && npm install`
+3. Generar cliente Prisma: `npx prisma generate`
+4. Ejecutar migraciones: `npx prisma migrate dev --name init`
+5. Arrancar backend: `npm run dev`
+6. Verificar health check: `curl http://localhost:3001/api/v1/health`
+7. Ejecutar tests: `npm test`
+8. Probar flujo completo (ver docs/PRUEBAS.md)
+9. **No marcar FASE 00 como VERIFIED hasta completar todos los pasos**
 
 ---
 
-*Última actualización: Diagnóstico honesto de herramientas disponibles*
-*Estado: PARTIAL (código completo, sin verificación en runtime)*
+*Última actualización: FASE 00-TD — Método TOP-DOWN aplicado*
+*Estado: BLOCKED (código completo, sin verificación en runtime)*
+*Simulaciones corregidas: 3*
+*Tests escritos: unitarios + integración*
+*CI configurado: GitHub Actions*
