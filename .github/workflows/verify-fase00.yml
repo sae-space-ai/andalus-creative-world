@@ -142,6 +142,11 @@ jobs:
       - name: Run migrations
         run: npx prisma migrate deploy --schema ../../prisma/schema.prisma
 
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
       - name: Verify database tables exist
         env:
           PGPASSWORD: test_password
@@ -176,6 +181,30 @@ jobs:
           
           echo ""
           echo "=== Diagnostics Complete ==="
+
+      - name: Verify essential tables exist (fail if missing)
+        env:
+          PGPASSWORD: test_password
+        run: |
+          echo "=== Verifying Essential Tables ==="
+          
+          TABLE_COUNT=$(psql -h localhost -U andalus_test -d andalus_test -t -c "
+            SELECT COUNT(*) 
+            FROM information_schema.tables 
+            WHERE table_schema = 'public' 
+            AND table_name IN ('User', 'Session', 'Project', 'SourceDocument', 'DocumentPage', 'DocumentProcessingJob', 'EmailVerificationToken', 'PasswordResetToken', 'SecurityEvent', 'ExternalIdentity', 'CreditWallet', 'CreditLedgerEntry', 'PromotionCampaign', 'PromotionRedemption', 'PaymentRecord');
+          ")
+          
+          echo "Found $TABLE_COUNT essential tables"
+          
+          if [ "$TABLE_COUNT" -lt 15 ]; then
+            echo "ERROR: Expected 15 essential tables but found $TABLE_COUNT"
+            echo "Missing tables - migration may have failed"
+            exit 1
+          fi
+          
+          echo "✅ All 15 essential tables exist"
+          echo "=== Verification Complete ==="
 
       - name: Run integration tests
         run: npm test
