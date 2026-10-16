@@ -142,6 +142,41 @@ jobs:
       - name: Run migrations
         run: npx prisma migrate deploy --schema ../../prisma/schema.prisma
 
+      - name: Verify database tables exist
+        env:
+          PGPASSWORD: test_password
+        run: |
+          echo "=== Database Diagnostics ==="
+          echo "Checking PostgreSQL connection..."
+          psql -h localhost -U andalus_test -d andalus_test -c "SELECT version();"
+          
+          echo ""
+          echo "Checking search_path..."
+          psql -h localhost -U andalus_test -d andalus_test -c "SHOW search_path;"
+          
+          echo ""
+          echo "Listing all tables in public schema..."
+          psql -h localhost -U andalus_test -d andalus_test -c "\dt public.*"
+          
+          echo ""
+          echo "Verifying essential tables exist..."
+          psql -h localhost -U andalus_test -d andalus_test -c "
+            SELECT table_name 
+            FROM information_schema.tables 
+            WHERE table_schema = 'public' 
+            AND table_name IN ('User', 'Session', 'Project', 'SourceDocument', 'DocumentPage')
+            ORDER BY table_name;
+          "
+          
+          echo ""
+          echo "Checking Prisma migration status..."
+          psql -h localhost -U andalus_test -d andalus_test -c "
+            SELECT * FROM _prisma_migrations ORDER BY finished_at DESC LIMIT 5;
+          " || echo "No migrations table found"
+          
+          echo ""
+          echo "=== Diagnostics Complete ==="
+
       - name: Run integration tests
         run: npm test
 

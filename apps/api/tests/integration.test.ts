@@ -37,10 +37,8 @@ describe('PRUEBA REAL Nº 001 — User Journey', () => {
   let sessionId: string;
 
   beforeAll(async () => {
-    // Ensure clean state
-    await prisma.user.deleteMany({
-      where: { email: { startsWith: 'test_' } },
-    });
+    // No bulk deletion - each test run uses unique identifiers
+    // Cleanup happens in afterAll for this specific test run only
   });
 
   afterAll(async () => {
