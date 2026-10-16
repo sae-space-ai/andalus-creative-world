@@ -2,19 +2,30 @@
 // Fastify + TypeScript + Prisma + PostgreSQL
 // FASE 00
 
-import Fastify from 'fastify';
+import Fastify, { FastifyRequest, FastifyReply } from 'fastify';
 import cors from '@fastify/cors';
 import cookie from '@fastify/cookie';
 import formbody from '@fastify/formbody';
 import multipart from '@fastify/multipart';
 import rateLimit from '@fastify/rate-limit';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, User, Session } from '@prisma/client';
 import argon2 from 'argon2';
 import { z } from 'zod';
 import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import pdfParse from 'pdf-parse';
+
+// ============================================================
+// TYPE DECLARATIONS
+// ============================================================
+
+declare module 'fastify' {
+  interface FastifyRequest {
+    user?: User;
+    session?: Session;
+  }
+}
 
 // ============================================================
 // CONFIGURATION
