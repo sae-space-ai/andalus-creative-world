@@ -37,10 +37,8 @@ describe('PRUEBA REAL Nº 001 — User Journey', () => {
   let sessionId: string;
 
   beforeAll(async () => {
-    // Ensure clean state
-    await prisma.user.deleteMany({
-      where: { email: { startsWith: 'test_' } },
-    });
+    // No bulk deletion - each test run uses unique identifiers
+    // Cleanup happens in afterAll for this specific test run only
   });
 
   afterAll(async () => {
@@ -79,7 +77,7 @@ describe('PRUEBA REAL Nº 001 — User Journey', () => {
     });
 
     const user = await prisma.user.create({
-       {
+      data: {
         email: testEmail,
         emailNormalized,
         passwordHash,
@@ -116,7 +114,7 @@ describe('PRUEBA REAL Nº 001 — User Journey', () => {
     const tokenHash = hashToken(verificationToken);
 
     const token = await prisma.emailVerificationToken.create({
-       {
+      data: {
         userId,
         tokenHash,
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24h
@@ -147,13 +145,13 @@ describe('PRUEBA REAL Nº 001 — User Journey', () => {
     // Mark as used
     await prisma.emailVerificationToken.update({
       where: { id: token!.id },
-       { usedAt: new Date() },
+      data: { usedAt: new Date() },
     });
 
     // Verify user
     await prisma.user.update({
       where: { id: userId },
-       {
+      data: {
         emailVerifiedAt: new Date(),
         status: 'ACTIVE',
       },
@@ -199,7 +197,7 @@ describe('PRUEBA REAL Nº 001 — User Journey', () => {
     const tokenHash = hashToken(sessionToken);
 
     const session = await prisma.session.create({
-       {
+      data: {
         userId,
         tokenHash,
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
@@ -236,7 +234,7 @@ describe('PRUEBA REAL Nº 001 — User Journey', () => {
 
   it('10. Create a private project owned by the user', async () => {
     const project = await prisma.project.create({
-       {
+      data: {
         ownerId: userId,
         type: 'FILM',
         title: 'Mi Primera Película',
@@ -275,7 +273,7 @@ describe('PRUEBA REAL Nº 001 — User Journey', () => {
     const checksum = crypto.createHash('sha256').update(pdfContent).digest('hex');
 
     const doc = await prisma.sourceDocument.create({
-       {
+      data: {
         projectId,
         ownerId: userId,
         originalName: 'prueba_001.pdf',
@@ -311,7 +309,7 @@ describe('PRUEBA REAL Nº 001 — User Journey', () => {
   // ============================================================
   it('14. Extracted text is persisted in DocumentPage', async () => {
     const page = await prisma.documentPage.create({
-       {
+      data: {
         documentId,
         pageNumber: 1,
         text: 'ANDALUS CREATIVE WORLD - PRUEBA DE LECTURA NUMERO 001',
@@ -342,7 +340,7 @@ describe('PRUEBA REAL Nº 001 — User Journey', () => {
   it('16. Logout revokes the session', async () => {
     await prisma.session.update({
       where: { id: sessionId },
-       { revokedAt: new Date() },
+      data: { revokedAt: new Date() },
     });
 
     const session = await prisma.session.findUnique({
@@ -372,7 +370,7 @@ describe('PRUEBA REAL Nº 001 — User Journey', () => {
     const tokenHash = hashToken(sessionToken);
 
     const session = await prisma.session.create({
-       {
+      data: {
         userId,
         tokenHash,
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
@@ -441,7 +439,7 @@ describe('PRUEBA REAL Nº 001 — User Journey', () => {
     });
 
     const user2 = await prisma.user.create({
-       {
+      data: {
         email: user2Email,
         emailNormalized: normalizeEmail(user2Email),
         passwordHash,

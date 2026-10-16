@@ -2,19 +2,30 @@
 // Fastify + TypeScript + Prisma + PostgreSQL
 // FASE 00
 
-import Fastify from 'fastify';
+import Fastify, { FastifyRequest, FastifyReply } from 'fastify';
 import cors from '@fastify/cors';
 import cookie from '@fastify/cookie';
 import formbody from '@fastify/formbody';
 import multipart from '@fastify/multipart';
 import rateLimit from '@fastify/rate-limit';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, User, Session } from '@prisma/client';
 import argon2 from 'argon2';
 import { z } from 'zod';
 import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import pdfParse from 'pdf-parse';
+
+// ============================================================
+// TYPE DECLARATIONS
+// ============================================================
+
+declare module 'fastify' {
+  interface FastifyRequest {
+    user?: User;
+    session?: Session;
+  }
+}
 
 // ============================================================
 // CONFIGURATION
@@ -99,10 +110,11 @@ function normalizeEmail(email: string): string {
 // AUTH MIDDLEWARE
 // ============================================================
 
-async function authenticate(request: any, reply: any) {
+async function authenticate(request: FastifyRequest, reply: FastifyReply): Promise<void> {
   const sessionToken = request.cookies['session_token'];
   if (!sessionToken) {
-    return reply.status(401).send({ error: 'Not authenticated' });
+    reply.status(401).send({ error: 'Not authenticated' });
+    return;
   }
 
   const tokenHash = hashToken(sessionToken);
@@ -112,7 +124,8 @@ async function authenticate(request: any, reply: any) {
   });
 
   if (!session || session.revokedAt || session.expiresAt < new Date()) {
-    return reply.status(401).send({ error: 'Invalid or expired session' });
+    reply.status(401).send({ error: 'Invalid or expired session' });
+    return;
   }
 
   // Update last activity
@@ -123,6 +136,14 @@ async function authenticate(request: any, reply: any) {
 
   request.user = session.user;
   request.session = session;
+}
+
+// Helper to get authenticated user with type safety
+function getAuthenticatedUser(request: FastifyRequest): User {
+  if (!request.user) {
+    throw new Error('User not authenticated');
+  }
+  return request.user;
 }
 
 // ============================================================
@@ -316,7 +337,11 @@ app.post('/api/v1/auth/logout', async (request, reply) => {
   await authenticate(request, reply);
   if (reply.sent) return;
 
+  const user = getAuthenticatedUser(request);
   const sessionToken = request.cookies['session_token'];
+  if (!sessionToken) {
+    return reply.status(401).send({ error: 'No session token' });
+  }
   const tokenHash = hashToken(sessionToken);
 
   // Revoke session
@@ -331,7 +356,7 @@ app.post('/api/v1/auth/logout', async (request, reply) => {
   // Log security event
   await prisma.securityEvent.create({
     data: {
-      userId: request.user.id,
+      userId: user.id,
       type: 'LOGOUT',
       ipAddress: request.ip,
       userAgent: request.headers['user-agent'],
@@ -345,15 +370,17 @@ app.get('/api/v1/auth/me', async (request, reply) => {
   await authenticate(request, reply);
   if (reply.sent) return;
 
+  const user = getAuthenticatedUser(request);
+
   return {
     user: {
-      id: request.user.id,
-      email: request.user.email,
-      displayName: request.user.displayName,
-      role: request.user.role,
-      status: request.user.status,
-      emailVerifiedAt: request.user.emailVerifiedAt,
-      createdAt: request.user.createdAt,
+      id: user.id,
+      email: user.email,
+      displayName: user.displayName,
+      role: user.role,
+      status: user.status,
+      emailVerifiedAt: user.emailVerifiedAt,
+      createdAt: user.createdAt,
     },
   };
 });
@@ -461,8 +488,10 @@ app.get('/api/v1/projects', async (request, reply) => {
   await authenticate(request, reply);
   if (reply.sent) return;
 
+  const user = getAuthenticatedUser(request);
+
   const projects = await prisma.project.findMany({
-    where: { ownerId: request.user.id },
+    where: { ownerId: user.id },
     orderBy: { updatedAt: 'desc' },
     include: {
       _count: {
@@ -484,11 +513,12 @@ app.post('/api/v1/projects', async (request, reply) => {
   await authenticate(request, reply);
   if (reply.sent) return;
 
+  const user = getAuthenticatedUser(request);
   const body = createProjectSchema.parse(request.body);
 
   const project = await prisma.project.create({
     data: {
-      ownerId: request.user.id,
+      ownerId: user.id,
       type: body.type,
       title: body.title,
       description: body.description || '',
@@ -498,14 +528,20 @@ app.post('/api/v1/projects', async (request, reply) => {
   return reply.status(201).send({ project });
 });
 
+const projectIdParamsSchema = z.object({
+  id: z.string().min(1),
+});
+
 app.get('/api/v1/projects/:id', async (request, reply) => {
   await authenticate(request, reply);
   if (reply.sent) return;
 
-  const { id } = request.params;
+  const user = getAuthenticatedUser(request);
+  const params = projectIdParamsSchema.parse(request.params);
+  const { id } = params;
 
   const project = await prisma.project.findFirst({
-    where: { id, ownerId: request.user.id },
+    where: { id, ownerId: user.id },
     include: {
       documents: {
         orderBy: { createdAt: 'desc' },
@@ -532,12 +568,14 @@ app.patch('/api/v1/projects/:id', async (request, reply) => {
   await authenticate(request, reply);
   if (reply.sent) return;
 
-  const { id } = request.params;
+  const user = getAuthenticatedUser(request);
+  const params = projectIdParamsSchema.parse(request.params);
+  const { id } = params;
   const body = updateProjectSchema.parse(request.body);
 
   // Verify ownership
   const existing = await prisma.project.findFirst({
-    where: { id, ownerId: request.user.id },
+    where: { id, ownerId: user.id },
   });
 
   if (!existing) {
@@ -561,11 +599,13 @@ app.delete('/api/v1/projects/:id', async (request, reply) => {
   await authenticate(request, reply);
   if (reply.sent) return;
 
-  const { id } = request.params;
+  const user = getAuthenticatedUser(request);
+  const params = projectIdParamsSchema.parse(request.params);
+  const { id } = params;
 
   // Verify ownership
   const existing = await prisma.project.findFirst({
-    where: { id, ownerId: request.user.id },
+    where: { id, ownerId: user.id },
   });
 
   if (!existing) {
@@ -585,11 +625,13 @@ app.get('/api/v1/projects/:id/documents', async (request, reply) => {
   await authenticate(request, reply);
   if (reply.sent) return;
 
-  const { id } = request.params;
+  const user = getAuthenticatedUser(request);
+  const params = projectIdParamsSchema.parse(request.params);
+  const { id } = params;
 
   // Verify project ownership
   const project = await prisma.project.findFirst({
-    where: { id, ownerId: request.user.id },
+    where: { id, ownerId: user.id },
   });
 
   if (!project) {
@@ -613,11 +655,13 @@ app.post('/api/v1/projects/:id/documents', async (request, reply) => {
   await authenticate(request, reply);
   if (reply.sent) return;
 
-  const { id: projectId } = request.params;
+  const user = getAuthenticatedUser(request);
+  const params = projectIdParamsSchema.parse(request.params);
+  const projectId = params.id;
 
   // Verify project ownership
   const project = await prisma.project.findFirst({
-    where: { id: projectId, ownerId: request.user.id },
+    where: { id: projectId, ownerId: user.id },
   });
 
   if (!project) {
@@ -661,7 +705,7 @@ app.post('/api/v1/projects/:id/documents', async (request, reply) => {
   const document = await prisma.sourceDocument.create({
     data: {
       projectId,
-      ownerId: request.user.id,
+      ownerId: user.id,
       originalName: file.filename,
       mimeType: file.mimetype,
       sizeBytes: buffer.length,

@@ -53,11 +53,37 @@ No reconstruir código existente válido.
 
 ---
 
-## Estado actual: BLOCKED
+## Estado actual: BLOCKED (CI corregido)
 
 **NO es PARTIAL. NO es VERIFIED. Es BLOCKED.**
 
 El código está completo y compilado, pero NO se ha verificado en runtime.
+
+### ✅ Correcciones de CI realizadas (última sesión)
+
+**Problemas identificados y corregidos:**
+
+1. **Backend Typecheck FAIL** → Corregido
+   - Causa: `cache-dependency-path` apuntaba a `apps/api/package-lock.json` que NO existe
+   - Solución: Eliminado `cache-dependency-path`, usado `npm install` directo
+
+2. **Prisma Schema Validation FAIL** → Corregido
+   - Causa: Comandos de Prisma se ejecutaban en `apps/api` pero schema está en raíz
+   - Solución: Agregado `--schema ../../prisma/schema.prisma` explícitamente
+
+3. **TypeScript errors** → Corregido
+   - Causa: `request.user` y `request.session` sin declaración de tipos
+   - Solución: Agregada declaración de módulos para extender `FastifyRequest`
+
+4. **`npm ci || npm install`** → Corregido
+   - Causa: Ocultaba errores reales
+   - Solución: Reemplazado con `npm install` directo en backend
+
+**Archivos modificados:**
+- `.github/workflows/verify-fase00.yml` — Workflow corregido
+- `apps/api/src/index.ts` — Tipos TypeScript agregados
+
+**Ver documentación:** `docs/CORRECCION_CI.md`
 
 ### ✅ LO ÚNICO VERIFICADO
 
