@@ -142,11 +142,8 @@ jobs:
       - name: Run migrations
         run: npx prisma migrate deploy --schema ../../prisma/schema.prisma
 
-      - name: Install Vitest
-        run: npm install -D vitest
-
       - name: Run integration tests
-        run: npx vitest run tests/integration.test.ts --reporter=verbose
+        run: npm test
 
   # ============================================================
   # JOB 5: E2E Tests (with Playwright)
