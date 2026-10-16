@@ -81,14 +81,14 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: Install Prisma CLI
-        run: npm install -g prisma
+      - name: Install dependencies
+        run: npm install
 
       - name: Validate Prisma schema
-        run: prisma validate --schema prisma/schema.prisma
+        run: npx prisma validate --schema prisma/schema.prisma
 
       - name: Generate Prisma Client (test)
-        run: prisma generate --schema prisma/schema.prisma
+        run: npx prisma generate --schema prisma/schema.prisma
 
   # ============================================================
   # JOB 4: Integration Tests (with PostgreSQL)
