@@ -73,6 +73,8 @@ jobs:
   prisma:
     name: Prisma Schema Validation
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/andalus_cw_test
     steps:
       - uses: actions/checkout@v4
 

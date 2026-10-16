@@ -528,12 +528,17 @@ app.post('/api/v1/projects', async (request, reply) => {
   return reply.status(201).send({ project });
 });
 
+const projectIdParamsSchema = z.object({
+  id: z.string().min(1),
+});
+
 app.get('/api/v1/projects/:id', async (request, reply) => {
   await authenticate(request, reply);
   if (reply.sent) return;
 
   const user = getAuthenticatedUser(request);
-  const { id } = request.params;
+  const params = projectIdParamsSchema.parse(request.params);
+  const { id } = params;
 
   const project = await prisma.project.findFirst({
     where: { id, ownerId: user.id },
@@ -564,7 +569,8 @@ app.patch('/api/v1/projects/:id', async (request, reply) => {
   if (reply.sent) return;
 
   const user = getAuthenticatedUser(request);
-  const { id } = request.params;
+  const params = projectIdParamsSchema.parse(request.params);
+  const { id } = params;
   const body = updateProjectSchema.parse(request.body);
 
   // Verify ownership
@@ -594,7 +600,8 @@ app.delete('/api/v1/projects/:id', async (request, reply) => {
   if (reply.sent) return;
 
   const user = getAuthenticatedUser(request);
-  const { id } = request.params;
+  const params = projectIdParamsSchema.parse(request.params);
+  const { id } = params;
 
   // Verify ownership
   const existing = await prisma.project.findFirst({
@@ -619,7 +626,8 @@ app.get('/api/v1/projects/:id/documents', async (request, reply) => {
   if (reply.sent) return;
 
   const user = getAuthenticatedUser(request);
-  const { id } = request.params;
+  const params = projectIdParamsSchema.parse(request.params);
+  const { id } = params;
 
   // Verify project ownership
   const project = await prisma.project.findFirst({
@@ -648,7 +656,8 @@ app.post('/api/v1/projects/:id/documents', async (request, reply) => {
   if (reply.sent) return;
 
   const user = getAuthenticatedUser(request);
-  const { id: projectId } = request.params;
+  const params = projectIdParamsSchema.parse(request.params);
+  const projectId = params.id;
 
   // Verify project ownership
   const project = await prisma.project.findFirst({
